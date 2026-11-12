@@ -1,0 +1,18 @@
+# environments and caches
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# datasets and derived matrices are fetched and built locally, never committed
+data/
+*.tmx
+*.arrow
+*.zip
+*.npz
+
+# models and scratch output of a run; a demo commits only its results files
+*.tmcore
+*.f64
+work/

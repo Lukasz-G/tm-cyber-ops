@@ -1,0 +1,6 @@
+{
+  "max_abs_margin_float32_minus_float64": 3.3114413410473276e-05,
+  "efficiency_gap_vs_float32_margin": 3.908950348874285e-05,
+  "efficiency_gap_vs_float64_margin": 7.804559309931847e-08,
+  "max_abs_margin": 14.026533002552528
+}

@@ -1,0 +1,41 @@
+[project]
+name = "tm-cyber-ops"
+version = "0.1.0"
+description = "Exact attribution and drift above the noise floor in security operations: Tsetlin machines and XGBoost on public security datasets"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13,<3.14"
+# The model and data stack is pinned to the versions that produced the tm-cyber-lab numbers this
+# repository reproduces first (numpy 2.2.6, scikit-learn 1.7.2, xgboost 3.1.1, pyarrow 22.0.0).
+# Python 3.13 is the newest release with wheels for all of them. shap is newer than the lab's 0.49.1,
+# which cannot read the vector base_score that xgboost 3.1 writes; no lab number depends on shap.
+dependencies = [
+    "numpy==2.2.6",
+    "pyarrow==22.0.0",
+    "scikit-learn==1.7.2",
+    "xgboost==3.1.1",
+    "shap==0.54.1",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tmcyberops"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]  # line length is the formatter's job; it leaves long f-strings whole
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

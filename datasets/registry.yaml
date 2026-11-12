@@ -1,0 +1,25 @@
+# One entry per dataset. Each dataset is fetched by its module and described by its card;
+# nothing in data/ is committed.
+apigraph:
+  task: Android malware detection
+  features: Drebin, 1,159 binary features (third-party extraction)
+  period: 2012 training pool, monthly test sets 2013-2018
+  module: tmcyberops.datasets.apigraph
+  card: datasets/apigraph/DATASET_CARD.md
+  status: adapter
+bodmas:
+  task: Windows PE malware detection
+  module: null
+  status: planned
+anoshift:
+  task: network intrusion detection (Kyoto-2006+), ten years
+  module: null
+  status: planned
+phreshphish:
+  task: phishing web-page detection
+  module: null
+  status: planned
+beth:
+  task: host process-event anomaly detection
+  module: null
+  status: planned
