@@ -1,0 +1,45 @@
+train 30,533 x 1,159; test 289,782 rows in 72 months
+explained: 8,400 rows against background 1, 2,400 against background 2
+
+logreg
+  fit, predict, attribute 10,800 rows in 2 s
+  logreg k=100: support 504, drift mean 0.204, floor p50 0.230 p95 0.291 (row-only p95 0.276), alerts 4/71, control 0.002 (max 0.014)
+  logreg k=1000: support 504, drift mean 0.175, floor p50 0.491 p95 0.524 (row-only p95 0.283), alerts 0/71, control 0.000 (max 0.000)
+
+fptm-seed1
+  fit, predict, attribute 10,800 rows in 70 s
+  fptm-seed1 k=100: support 411, drift mean 0.170, floor p50 0.230 p95 0.276 (row-only p95 0.214), alerts 1/71, control 0.000 (max 0.000)
+  fptm-seed1 k=1000: support 411, drift mean 0.151, floor p50 0.437 p95 0.469 (row-only p95 0.252), alerts 0/71, control 0.000 (max 0.000)
+
+fptm-seed2
+  fit, predict, attribute 10,800 rows in 72 s
+  fptm-seed2 k=100: support 391, drift mean 0.150, floor p50 0.198 p95 0.276 (row-only p95 0.214), alerts 0/71, control 0.000 (max 0.000)
+  fptm-seed2 k=1000: support 391, drift mean 0.154, floor p50 0.424 p95 0.459 (row-only p95 0.254), alerts 0/71, control 0.000 (max 0.000)
+
+fptm-seed3
+  fit, predict, attribute 10,800 rows in 75 s
+  fptm-seed3 k=100: support 391, drift mean 0.130, floor p50 0.182 p95 0.246 (row-only p95 0.182), alerts 1/71, control 0.000 (max 0.000)
+  fptm-seed3 k=1000: support 391, drift mean 0.141, floor p50 0.396 p95 0.429 (row-only p95 0.244), alerts 0/71, control 0.000 (max 0.000)
+
+xgboost
+  fit, predict, attribute 10,800 rows in 978 s
+  xgboost k=100: support 258, drift mean 0.156, floor p50 0.182 p95 0.276 (row-only p95 0.230), alerts 0/71, control 0.000 (max 0.000)
+  xgboost k=1000: support 258, drift mean 0.087, floor p50 0.206 p95 0.235 (row-only p95 0.142), alerts 0/71, control 0.000 (max 0.000)
+
+FPTM same-month seed spread: k=100 0.196, k=1000 0.238
+
+=== gate: shuffled control alert rate at k=100 (max 10%) ===
+logreg        control 0.002  alerts  4/71  floor p95 0.291  drift mean 0.204
+fptm-seed1    control 0.000  alerts  1/71  floor p95 0.276  drift mean 0.170
+fptm-seed2    control 0.000  alerts  0/71  floor p95 0.276  drift mean 0.150
+fptm-seed3    control 0.000  alerts  1/71  floor p95 0.246  drift mean 0.130
+xgboost       control 0.000  alerts  0/71  floor p95 0.276  drift mean 0.156
+
+=== alerts at k=100 (month: drift / floor p95, F1 previous -> this month) ===
+logreg: 2013-07 0.319/0.291 (77.4->86.0); 2013-09 0.319/0.291 (82.1->80.1); 2013-12 0.305/0.291 (78.7->74.1); 2014-11 0.305/0.291 (65.2->71.1)
+fptm-seed1: 2013-10 0.291/0.276 (87.5->83.4)
+fptm-seed2: none
+fptm-seed3: 2013-10 0.261/0.246 (84.0->81.2)
+xgboost: none
+
+RESULT apigraph_drift_floor=PASS  (1205 s)
