@@ -1,0 +1,162 @@
+pool 30,533 x 1,159 (10.0% malware); test 289,782 rows in 72 months (5.8-10.0% malware)
+fit 27,480 rows (10.0% malware); held out 3,053 (reference 500, other 2,553); explained 51,053 rows (10.0% malware) against the deployment background, 12,000 against the second
+
+logreg
+  fit and margins 3 s
+  fit, margins, attribute 63,053 rows in 3 s
+  logreg k=100: support 658; month to month: drift mean 0.101, floor p50 0.077 p95 0.131 exceed 0.022, alerts 4/71, control 0.031 (0.000-0.056); reference: floor p95 0.165, alerts 67/72; own year 0.106, above the reference floor 2/72; background-only mean 0.167
+  logreg k=1000: support 658; month to month: drift mean 0.161, floor p50 0.142 p95 0.258 exceed 0.050, alerts 4/71, control 0.131 (0.085-0.197); reference: floor p95 0.314, alerts 68/72; own year 0.162, above the reference floor 1/72; background-only mean 0.338
+
+xgboost
+  fit and margins 90 s
+  fit, margins, attribute 63,053 rows in 3028 s
+  xgboost k=100: support 280; month to month: drift mean 0.081, floor p50 0.058 p95 0.095 exceed 0.015, alerts 13/71, control 0.010 (0.000-0.028); reference: floor p95 0.113, alerts 65/72; own year 0.086, above the reference floor 8/72; background-only mean 0.166
+  xgboost k=1000: support 280; month to month: drift mean 0.048, floor p50 0.041 p95 0.083 exceed 0.049, alerts 3/71, control 0.006 (0.000-0.014); reference: floor p95 0.081, alerts 61/72; own year 0.050, above the reference floor 2/72; background-only mean 0.082
+
+fptm-seed1
+  fit and margins 35 s
+  fit, margins, attribute 63,053 rows in 382 s
+  fptm-seed1 k=100: support 489; month to month: drift mean 0.100, floor p50 0.095 p95 0.131 exceed 0.022, alerts 4/71, control 0.015 (0.000-0.070); reference: floor p95 0.148, alerts 66/72; own year 0.102, above the reference floor 3/72; background-only mean 0.177
+  fptm-seed1 k=1000: support 489; month to month: drift mean 0.134, floor p50 0.115 p95 0.214 exceed 0.048, alerts 4/71, control 0.040 (0.000-0.127); reference: floor p95 0.260, alerts 71/72; own year 0.136, above the reference floor 0/72; background-only mean 0.277
+
+fptm-seed2
+  fit and margins 43 s
+  fit, margins, attribute 63,053 rows in 372 s
+  fptm-seed2 k=100: support 478; month to month: drift mean 0.083, floor p50 0.058 p95 0.113 exceed 0.007, alerts 4/71, control 0.000 (0.000-0.000); reference: floor p95 0.131, alerts 70/72; own year 0.083, above the reference floor 4/72; background-only mean 0.152
+  fptm-seed2 k=1000: support 478; month to month: drift mean 0.127, floor p50 0.103 p95 0.207 exceed 0.050, alerts 4/71, control 0.069 (0.014-0.141); reference: floor p95 0.257, alerts 71/72; own year 0.129, above the reference floor 0/72; background-only mean 0.272
+
+fptm-seed3
+  fit and margins 35 s
+  fit, margins, attribute 63,053 rows in 308 s
+  fptm-seed3 k=100: support 491; month to month: drift mean 0.094, floor p50 0.077 p95 0.113 exceed 0.015, alerts 12/71, control 0.016 (0.000-0.070); reference: floor p95 0.113, alerts 70/72; own year 0.098, above the reference floor 11/72; background-only mean 0.182
+  fptm-seed3 k=1000: support 491; month to month: drift mean 0.120, floor p50 0.107 p95 0.195 exceed 0.048, alerts 6/71, control 0.053 (0.000-0.113); reference: floor p95 0.243, alerts 71/72; own year 0.124, above the reference floor 0/72; background-only mean 0.265
+
+fptm-seed4
+  fit and margins 29 s
+  fit, margins, attribute 63,053 rows in 310 s
+  fptm-seed4 k=100: support 487; month to month: drift mean 0.099, floor p50 0.077 p95 0.113 exceed 0.022, alerts 8/71, control 0.071 (0.028-0.113); reference: floor p95 0.131, alerts 70/72; own year 0.094, above the reference floor 2/72; background-only mean 0.191
+  fptm-seed4 k=1000: support 487; month to month: drift mean 0.137, floor p50 0.118 p95 0.218 exceed 0.049, alerts 5/71, control 0.043 (0.000-0.070); reference: floor p95 0.270, alerts 71/72; own year 0.138, above the reference floor 0/72; background-only mean 0.273
+
+fptm-seed5
+  fit and margins 34 s
+  fit, margins, attribute 63,053 rows in 1117 s
+  fptm-seed5 k=100: support 476; month to month: drift mean 0.081, floor p50 0.058 p95 0.095 exceed 0.042, alerts 8/71, control 0.008 (0.000-0.042); reference: floor p95 0.113, alerts 70/72; own year 0.084, above the reference floor 5/72; background-only mean 0.159
+  fptm-seed5 k=1000: support 476; month to month: drift mean 0.136, floor p50 0.118 p95 0.209 exceed 0.048, alerts 6/71, control 0.070 (0.014-0.113); reference: floor p95 0.263, alerts 71/72; own year 0.137, above the reference floor 0/72; background-only mean 0.271
+
+fptm-seed6
+  fit and margins 93 s
+  fit, margins, attribute 63,053 rows in 660 s
+  fptm-seed6 k=100: support 490; month to month: drift mean 0.083, floor p50 0.058 p95 0.095 exceed 0.047, alerts 12/71, control 0.028 (0.000-0.070); reference: floor p95 0.113, alerts 71/72; own year 0.081, above the reference floor 8/72; background-only mean 0.151
+  fptm-seed6 k=1000: support 490; month to month: drift mean 0.130, floor p50 0.114 p95 0.201 exceed 0.050, alerts 7/71, control 0.058 (0.028-0.127); reference: floor p95 0.260, alerts 70/72; own year 0.132, above the reference floor 0/72; background-only mean 0.295
+
+fptm-seed7
+  fit and margins 39 s
+  fit, margins, attribute 63,053 rows in 410 s
+  fptm-seed7 k=100: support 505; month to month: drift mean 0.093, floor p50 0.077 p95 0.113 exceed 0.010, alerts 9/71, control 0.042 (0.014-0.070); reference: floor p95 0.131, alerts 71/72; own year 0.095, above the reference floor 4/72; background-only mean 0.153
+  fptm-seed7 k=1000: support 505; month to month: drift mean 0.138, floor p50 0.118 p95 0.224 exceed 0.047, alerts 3/71, control 0.062 (0.014-0.099); reference: floor p95 0.257, alerts 71/72; own year 0.141, above the reference floor 0/72; background-only mean 0.283
+
+fptm-seed8
+  fit and margins 36 s
+  fit, margins, attribute 63,053 rows in 438 s
+  fptm-seed8 k=100: support 500; month to month: drift mean 0.077, floor p50 0.058 p95 0.095 exceed 0.032, alerts 13/71, control 0.005 (0.000-0.028); reference: floor p95 0.148, alerts 71/72; own year 0.081, above the reference floor 1/72; background-only mean 0.150
+  fptm-seed8 k=1000: support 500; month to month: drift mean 0.133, floor p50 0.118 p95 0.208 exceed 0.050, alerts 6/71, control 0.086 (0.028-0.169); reference: floor p95 0.266, alerts 69/72; own year 0.135, above the reference floor 0/72; background-only mean 0.293
+
+fptm-seed9
+  fit and margins 38 s
+  fit, margins, attribute 63,053 rows in 330 s
+  fptm-seed9 k=100: support 498; month to month: drift mean 0.084, floor p50 0.058 p95 0.095 exceed 0.031, alerts 16/71, control 0.075 (0.014-0.127); reference: floor p95 0.148, alerts 70/72; own year 0.086, above the reference floor 0/72; background-only mean 0.191
+  fptm-seed9 k=1000: support 498; month to month: drift mean 0.132, floor p50 0.112 p95 0.203 exceed 0.049, alerts 8/71, control 0.089 (0.042-0.169); reference: floor p95 0.260, alerts 71/72; own year 0.134, above the reference floor 0/72; background-only mean 0.280
+
+fptm-seed10
+  fit and margins 65 s
+  fit, margins, attribute 63,053 rows in 470 s
+  fptm-seed10 k=100: support 504; month to month: drift mean 0.096, floor p50 0.077 p95 0.113 exceed 0.041, alerts 10/71, control 0.004 (0.000-0.014); reference: floor p95 0.114, alerts 71/72; own year 0.100, above the reference floor 17/72; background-only mean 0.177
+  fptm-seed10 k=1000: support 504; month to month: drift mean 0.137, floor p50 0.116 p95 0.214 exceed 0.045, alerts 5/71, control 0.076 (0.028-0.141); reference: floor p95 0.254, alerts 68/72; own year 0.138, above the reference floor 1/72; background-only mean 0.274
+
+FPTM same-month seed spread: k=100 0.224, k=1000 0.275
+
+=== gate at k=100: shuffled control alert rate between e/2 and 2e (e = floor exceedance) ===
+logreg        e 0.022  control 0.031 in [0.011, 0.045] yes  alerts  4/71  floor p50 0.077 p95 0.131  drift median 0.095  control distance median 0.095
+xgboost       e 0.015  control 0.010 in [0.007, 0.030] yes  alerts 13/71  floor p50 0.058 p95 0.095  drift median 0.077  control distance median 0.058
+fptm-seed1    e 0.022  control 0.015 in [0.011, 0.043] yes  alerts  4/71  floor p50 0.095 p95 0.131  drift median 0.095  control distance median 0.077
+fptm-seed2    e 0.007  control 0.000 in [0.004, 0.015] NO   alerts  4/71  floor p50 0.058 p95 0.113  drift median 0.077  control distance median 0.058
+fptm-seed3    e 0.015  control 0.016 in [0.007, 0.030] yes  alerts 12/71  floor p50 0.077 p95 0.113  drift median 0.095  control distance median 0.077
+fptm-seed4    e 0.022  control 0.071 in [0.011, 0.045] NO   alerts  8/71  floor p50 0.077 p95 0.113  drift median 0.095  control distance median 0.095
+fptm-seed5    e 0.042  control 0.008 in [0.021, 0.083] NO   alerts  8/71  floor p50 0.058 p95 0.095  drift median 0.077  control distance median 0.058
+fptm-seed6    e 0.047  control 0.028 in [0.023, 0.093] yes  alerts 12/71  floor p50 0.058 p95 0.095  drift median 0.077  control distance median 0.058
+fptm-seed7    e 0.010  control 0.042 in [0.005, 0.020] NO   alerts  9/71  floor p50 0.077 p95 0.113  drift median 0.095  control distance median 0.077
+fptm-seed8    e 0.032  control 0.005 in [0.016, 0.063] NO   alerts 13/71  floor p50 0.058 p95 0.095  drift median 0.077  control distance median 0.058
+fptm-seed9    e 0.031  control 0.075 in [0.015, 0.062] NO   alerts 16/71  floor p50 0.058 p95 0.095  drift median 0.077  control distance median 0.077
+fptm-seed10   e 0.041  control 0.004 in [0.020, 0.082] NO   alerts 10/71  floor p50 0.077 p95 0.113  drift median 0.095  control distance median 0.058
+
+=== month-to-month alerts at k=100 (month: distance / floor p95, F1 at the held-out cut-off, previous -> this month) ===
+logreg: 2013-04 0.148/0.131 (86.5->92.1); 2013-08 0.148/0.131 (87.2->83.1); 2016-02 0.148/0.131 (59.7->65.2); 2016-07 0.148/0.131 (64.2->70.9)
+xgboost: 2013-02 0.131/0.095 (95.5->83.1); 2013-08 0.131/0.095 (84.6->83.3); 2013-10 0.113/0.095 (77.9->77.9); 2014-01 0.113/0.095 (70.1->66.0); 2014-02 0.113/0.095 (66.0->66.0); 2014-07 0.113/0.095 (53.6->54.0); 2015-10 0.131/0.095 (54.8->55.2); 2015-11 0.113/0.095 (55.2->29.5); 2017-10 0.113/0.095 (71.7->21.2); 2017-11 0.113/0.095 (21.2->65.8); 2018-04 0.131/0.095 (78.1->82.1); 2018-06 0.113/0.095 (82.3->60.0); 2018-10 0.113/0.095 (59.9->34.1)
+fptm-seed1: 2014-12 0.148/0.131 (69.9->74.8); 2015-05 0.148/0.131 (76.3->75.1); 2015-08 0.148/0.131 (67.0->63.8); 2018-09 0.148/0.131 (83.2->72.8)
+fptm-seed2: 2013-11 0.131/0.113 (84.7->83.4); 2014-05 0.148/0.113 (72.4->78.1); 2017-04 0.131/0.113 (71.3->57.4); 2018-05 0.131/0.113 (69.3->78.1)
+fptm-seed3: 2013-03 0.131/0.113 (89.1->87.2); 2013-04 0.131/0.113 (87.2->92.4); 2014-05 0.131/0.113 (74.7->79.5); 2014-09 0.131/0.113 (67.5->70.9); 2015-08 0.148/0.113 (71.5->69.7); 2015-09 0.131/0.113 (69.7->66.3); 2015-10 0.131/0.113 (66.3->60.9); 2016-09 0.131/0.113 (78.7->62.2); 2016-10 0.148/0.113 (62.2->75.3); 2016-11 0.131/0.113 (75.3->57.3); 2016-12 0.131/0.113 (57.3->66.4); 2017-09 0.131/0.113 (86.1->82.0)
+fptm-seed4: 2014-05 0.131/0.113 (69.1->71.9); 2014-06 0.131/0.113 (71.9->61.8); 2014-07 0.148/0.113 (61.8->67.8); 2014-08 0.165/0.113 (67.8->63.5); 2014-09 0.148/0.113 (63.5->66.8); 2014-10 0.131/0.113 (66.8->60.2); 2018-06 0.148/0.113 (82.2->69.9); 2018-10 0.148/0.113 (65.0->52.0)
+fptm-seed5: 2013-02 0.148/0.095 (94.2->88.1); 2013-04 0.113/0.095 (87.9->91.9); 2013-08 0.113/0.095 (88.2->84.9); 2013-11 0.113/0.095 (83.7->80.3); 2013-12 0.113/0.095 (80.3->74.5); 2016-11 0.131/0.095 (72.4->58.0); 2017-04 0.113/0.095 (67.9->59.1); 2018-03 0.131/0.095 (61.6->76.2)
+fptm-seed6: 2013-02 0.113/0.095 (95.0->88.2); 2013-03 0.113/0.095 (88.2->87.1); 2013-05 0.113/0.095 (92.6->89.7); 2013-07 0.113/0.095 (88.0->89.2); 2013-08 0.113/0.095 (89.2->89.3); 2013-10 0.113/0.095 (88.3->83.8); 2014-04 0.113/0.095 (72.6->71.7); 2014-07 0.131/0.095 (64.0->68.8); 2014-08 0.148/0.095 (68.8->61.8); 2015-04 0.113/0.095 (67.3->78.6); 2015-05 0.131/0.095 (78.6->77.8); 2015-11 0.113/0.095 (61.0->30.6)
+fptm-seed7: 2013-02 0.148/0.113 (95.4->86.4); 2014-04 0.131/0.113 (69.7->68.9); 2014-05 0.131/0.113 (68.9->70.0); 2014-07 0.131/0.113 (60.1->69.5); 2014-08 0.148/0.113 (69.5->61.0); 2015-03 0.131/0.113 (73.8->64.7); 2015-08 0.131/0.113 (68.3->66.7); 2015-09 0.131/0.113 (66.7->58.7); 2016-01 0.131/0.113 (34.6->54.2)
+fptm-seed8: 2013-02 0.113/0.095 (94.7->82.2); 2013-03 0.113/0.095 (82.2->84.0); 2013-04 0.113/0.095 (84.0->83.5); 2013-05 0.113/0.095 (83.5->80.3); 2013-06 0.113/0.095 (80.3->76.8); 2013-08 0.113/0.095 (85.5->84.3); 2014-02 0.113/0.095 (71.6->71.2); 2015-05 0.131/0.095 (76.9->75.9); 2018-04 0.131/0.095 (75.6->71.9); 2018-06 0.113/0.095 (58.5->62.8); 2018-09 0.113/0.095 (82.7->62.7); 2018-10 0.113/0.095 (62.7->35.3); 2018-11 0.113/0.095 (35.3->67.0)
+fptm-seed9: 2013-02 0.113/0.095 (94.3->88.9); 2013-03 0.131/0.095 (88.9->87.1); 2013-08 0.131/0.095 (91.2->88.7); 2013-09 0.113/0.095 (88.7->89.9); 2013-10 0.131/0.095 (89.9->87.6); 2015-04 0.131/0.095 (73.6->81.1); 2015-05 0.113/0.095 (81.1->80.1); 2015-11 0.113/0.095 (62.8->32.7); 2015-12 0.131/0.095 (32.7->37.5); 2016-01 0.131/0.095 (37.5->59.2); 2016-05 0.113/0.095 (53.7->64.7); 2016-08 0.113/0.095 (76.2->73.6); 2017-03 0.113/0.095 (78.6->73.2); 2017-10 0.113/0.095 (78.6->75.7); 2018-01 0.113/0.095 (75.0->78.3); 2018-06 0.113/0.095 (78.6->74.7)
+fptm-seed10: 2013-02 0.131/0.113 (95.4->88.1); 2013-08 0.131/0.113 (86.6->85.8); 2014-07 0.131/0.113 (66.8->69.2); 2014-08 0.131/0.113 (69.2->63.3); 2016-04 0.148/0.113 (62.0->49.4); 2017-07 0.131/0.113 (48.2->68.5); 2017-09 0.131/0.113 (84.5->80.5); 2017-10 0.148/0.113 (80.5->75.8); 2017-11 0.165/0.113 (75.8->67.1); 2018-11 0.131/0.113 (65.5->68.3)
+
+=== distance from the reference at k=100, mean by year; alerts by year (of 12) ===
+model         ref floor p95         2013         2014         2015         2016         2017         2018
+logreg                0.165  0.187 ( 7)  0.256 (12)  0.282 (12)  0.310 (12)  0.320 (12)  0.347 (12)
+xgboost               0.113  0.116 ( 5)  0.169 (12)  0.195 (12)  0.235 (12)  0.221 (12)  0.246 (12)
+fptm-seed1            0.148  0.165 ( 6)  0.250 (12)  0.278 (12)  0.317 (12)  0.290 (12)  0.305 (12)
+fptm-seed2            0.131  0.175 (10)  0.258 (12)  0.298 (12)  0.315 (12)  0.311 (12)  0.341 (12)
+fptm-seed3            0.113  0.153 (10)  0.223 (12)  0.252 (12)  0.278 (12)  0.283 (12)  0.272 (12)
+fptm-seed4            0.131  0.173 (10)  0.234 (12)  0.257 (12)  0.289 (12)  0.279 (12)  0.300 (12)
+fptm-seed5            0.113  0.152 (10)  0.227 (12)  0.247 (12)  0.269 (12)  0.283 (12)  0.286 (12)
+fptm-seed6            0.113  0.176 (11)  0.253 (12)  0.273 (12)  0.299 (12)  0.294 (12)  0.313 (12)
+fptm-seed7            0.131  0.184 (11)  0.252 (12)  0.274 (12)  0.304 (12)  0.303 (12)  0.300 (12)
+fptm-seed8            0.148  0.198 (11)  0.280 (12)  0.295 (12)  0.307 (12)  0.304 (12)  0.313 (12)
+fptm-seed9            0.148  0.184 (10)  0.235 (12)  0.263 (12)  0.312 (12)  0.320 (12)  0.338 (12)
+fptm-seed10           0.114  0.177 (11)  0.239 (12)  0.267 (12)  0.312 (12)  0.300 (12)  0.325 (12)
+
+=== distance from the other months of the same year at k=100, mean by year; months above the reference floor p95 (of 12) ===
+model         ref floor p95         2013         2014         2015         2016         2017         2018
+logreg                0.165  0.130 ( 1)  0.089 ( 0)  0.098 ( 0)  0.113 ( 0)  0.101 ( 0)  0.104 ( 1)
+xgboost               0.113  0.101 ( 3)  0.081 ( 0)  0.087 ( 1)  0.068 ( 0)  0.073 ( 1)  0.102 ( 3)
+fptm-seed1            0.148  0.116 ( 2)  0.100 ( 0)  0.109 ( 0)  0.081 ( 0)  0.098 ( 0)  0.111 ( 1)
+fptm-seed2            0.131  0.116 ( 3)  0.097 ( 0)  0.078 ( 0)  0.066 ( 0)  0.070 ( 0)  0.071 ( 1)
+fptm-seed3            0.113  0.110 ( 4)  0.104 ( 3)  0.103 ( 2)  0.100 ( 0)  0.086 ( 1)  0.087 ( 1)
+fptm-seed4            0.131  0.104 ( 1)  0.108 ( 1)  0.087 ( 0)  0.094 ( 0)  0.081 ( 0)  0.092 ( 0)
+fptm-seed5            0.113  0.111 ( 4)  0.080 ( 0)  0.064 ( 0)  0.084 ( 0)  0.081 ( 0)  0.081 ( 1)
+fptm-seed6            0.113  0.123 ( 8)  0.086 ( 0)  0.066 ( 0)  0.074 ( 0)  0.074 ( 0)  0.061 ( 0)
+fptm-seed7            0.131  0.116 ( 2)  0.107 ( 1)  0.099 ( 1)  0.078 ( 0)  0.083 ( 0)  0.084 ( 0)
+fptm-seed8            0.148  0.120 ( 1)  0.080 ( 0)  0.072 ( 0)  0.045 ( 0)  0.066 ( 0)  0.100 ( 0)
+fptm-seed9            0.148  0.092 ( 0)  0.075 ( 0)  0.081 ( 0)  0.078 ( 0)  0.094 ( 0)  0.096 ( 0)
+fptm-seed10           0.114  0.133 ( 7)  0.087 ( 1)  0.084 ( 0)  0.095 ( 2)  0.108 ( 5)  0.095 ( 2)
+
+=== detection: precision / recall / F1 (percent); held-out 2012 rows, then mean of 12 months per year ===
+logreg        default  cut-off         0  held-out 95.6/92.2/93.8  2013 94.0/73.6/82.3  2014 81.9/59.1/68.5  2015 76.4/56.8/64.5  2016 71.6/55.6/62.3  2017 70.9/67.2/68.7  2018 74.2/70.0/71.7
+logreg        held-out cut-off     -1.35  held-out 92.2/96.1/94.1  2013 88.0/85.0/86.4  2014 72.2/74.9/73.4  2015 65.6/64.8/64.7  2016 58.8/66.1/62.1  2017 60.9/74.5/66.9  2018 62.9/74.8/68.0
+xgboost       default  cut-off         0  held-out 96.7/94.8/95.7  2013 95.2/76.7/84.8  2014 90.1/59.3/71.4  2015 87.0/53.8/65.3  2016 78.7/52.4/62.5  2017 75.6/63.6/68.6  2018 81.7/63.3/70.9
+xgboost       held-out cut-off     1.478  held-out 98.6/94.1/96.3  2013 97.7/68.6/80.3  2014 93.6/45.2/60.9  2015 92.8/43.7/58.4  2016 79.5/36.5/49.5  2017 75.2/45.7/56.0  2018 85.3/54.5/65.3
+fptm-seed1    default  cut-off         0  held-out 97.9/91.8/94.8  2013 95.7/71.5/81.5  2014 88.0/49.8/63.4  2015 83.2/47.4/59.1  2016 83.8/48.9/61.3  2017 79.7/58.8/67.1  2018 86.5/64.6/73.5
+fptm-seed1    held-out cut-off        -1  held-out 97.3/93.1/95.2  2013 94.2/75.3/83.3  2014 85.7/57.4/68.6  2015 81.0/51.7/62.0  2016 79.7/54.2/64.1  2017 77.8/65.7/71.0  2018 83.0/69.0/75.0
+fptm-seed2    default  cut-off         0  held-out 96.9/91.5/94.1  2013 95.3/75.5/84.0  2014 86.1/55.6/67.4  2015 85.2/48.2/60.3  2016 79.2/44.7/56.7  2017 77.4/57.6/65.3  2018 82.3/65.0/72.2
+fptm-seed2    held-out cut-off        -4  held-out 95.7/94.4/95.1  2013 91.4/85.2/88.1  2014 77.3/67.5/71.9  2015 73.3/59.3/64.9  2016 70.4/61.7/65.5  2017 71.6/71.8/71.5  2018 73.7/71.7/72.4
+fptm-seed3    default  cut-off         0  held-out 97.9/91.2/94.4  2013 95.8/73.5/82.8  2014 92.3/53.7/67.7  2015 90.2/48.1/61.3  2016 89.2/47.5/61.6  2017 89.3/59.1/70.5  2018 85.9/58.7/69.1
+fptm-seed3    held-out cut-off        -3  held-out 96.3/93.5/94.9  2013 93.1/81.7/86.9  2014 85.4/64.5/73.4  2015 81.8/57.3/66.4  2016 80.8/58.7/67.7  2017 79.3/68.7/73.4  2018 76.6/64.3/69.5
+fptm-seed4    default  cut-off         0  held-out 97.9/91.5/94.6  2013 95.9/75.6/84.3  2014 92.6/53.3/67.5  2015 91.9/49.8/63.2  2016 86.2/43.7/57.6  2017 80.8/56.8/66.1  2018 88.1/56.7/67.9
+fptm-seed4    held-out cut-off         0  held-out 97.9/92.8/95.3  2013 95.4/78.3/85.7  2014 88.9/55.9/68.5  2015 88.9/52.0/64.3  2016 84.9/46.9/59.9  2017 80.7/59.4/67.9  2018 88.6/62.7/72.9
+fptm-seed5    default  cut-off         0  held-out 98.2/91.2/94.6  2013 96.4/73.0/82.7  2014 92.0/50.6/65.1  2015 88.4/43.7/57.2  2016 82.1/42.0/55.1  2017 74.3/44.7/55.2  2018 77.9/47.4/57.9
+fptm-seed5    held-out cut-off        -2  held-out 97.3/93.5/95.3  2013 94.5/78.4/85.5  2014 87.7/60.5/71.5  2015 83.7/53.3/64.0  2016 77.3/52.3/61.9  2017 73.9/57.1/64.0  2018 76.0/58.0/65.0
+fptm-seed6    default  cut-off         0  held-out 97.2/91.8/94.5  2013 96.5/76.9/85.4  2014 91.0/57.3/70.2  2015 88.8/50.7/63.4  2016 82.6/48.5/60.5  2017 79.1/61.7/68.9  2018 84.8/62.6/71.3
+fptm-seed6    held-out cut-off        -2  held-out 96.6/93.8/95.2  2013 92.6/82.8/87.3  2014 77.4/65.4/70.7  2015 76.1/57.1/64.3  2016 77.3/56.9/65.1  2017 76.6/68.6/72.1  2018 79.1/67.1/72.0
+fptm-seed7    default  cut-off         0  held-out 96.6/93.1/94.8  2013 94.6/81.0/87.1  2014 84.4/59.7/69.8  2015 82.1/54.3/64.4  2016 76.4/56.6/64.7  2017 74.4/67.5/70.7  2018 76.7/66.5/70.8
+fptm-seed7    held-out cut-off         3  held-out 97.3/92.8/95.0  2013 96.0/76.7/85.1  2014 86.8/54.1/66.5  2015 85.9/49.6/61.9  2016 81.9/50.0/61.8  2017 76.3/62.2/68.3  2018 79.2/58.7/66.5
+fptm-seed8    default  cut-off         0  held-out 97.9/91.8/94.8  2013 96.2/73.2/82.9  2014 91.6/49.8/64.3  2015 88.2/47.6/60.7  2016 83.2/44.6/57.8  2017 77.3/49.0/59.2  2018 81.9/52.5/62.7
+fptm-seed8    held-out cut-off         1  held-out 97.9/91.8/94.8  2013 96.2/73.2/82.9  2014 91.6/49.8/64.3  2015 88.2/47.6/60.7  2016 83.2/44.6/57.8  2017 77.3/49.0/59.2  2018 81.9/52.5/62.7
+fptm-seed9    default  cut-off         0  held-out 97.2/91.8/94.5  2013 96.4/76.0/84.7  2014 90.1/50.8/64.9  2015 90.1/44.8/58.7  2016 86.0/41.7/55.8  2017 77.7/54.3/63.4  2018 84.5/55.8/66.2
+fptm-seed9    held-out cut-off        -5  held-out 95.7/94.8/95.2  2013 91.2/85.5/88.2  2014 80.1/67.9/73.5  2015 77.9/60.5/67.1  2016 74.1/58.9/65.3  2017 72.8/71.5/72.0  2018 75.4/71.5/73.0
+fptm-seed10   default  cut-off         0  held-out 97.6/91.2/94.3  2013 96.4/73.5/83.1  2014 92.3/49.9/64.6  2015 88.9/46.3/59.6  2016 83.5/44.4/57.5  2017 75.9/50.6/60.0  2018 82.6/64.3/71.7
+fptm-seed10   held-out cut-off        -3  held-out 97.6/92.5/95.0  2013 94.1/79.6/86.0  2014 85.4/60.1/70.4  2015 81.7/55.0/64.7  2016 75.4/54.8/63.0  2017 73.7/66.8/69.8  2018 74.7/69.2/71.5
+
+RESULT apigraph_drift_reference=FAIL  (8448 s)
