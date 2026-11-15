@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
+
 import numpy as np
 import shap
 import xgboost as xgb
+
+
+def _interventional_shap(clf: xgb.XGBClassifier, background: np.ndarray, X: np.ndarray) -> np.ndarray:
+    explainer = shap.TreeExplainer(
+        clf, data=background, feature_perturbation="interventional", model_output="raw"
+    )
+    return np.asarray(explainer.shap_values(X, check_additivity=False))
 
 
 class XGBoostDetector:
@@ -18,7 +28,11 @@ class XGBoostDetector:
         max_leaves: int = 256,
         seed: int = 0,
         n_jobs: int = -1,
+        shap_jobs: int = 1,
     ):
+        """`shap_jobs` > 1 splits the explained rows over that many processes; each row's
+        attribution is computed independently, so the result does not depend on it."""
+        self.shap_jobs = shap_jobs
         self.params = dict(
             n_estimators=n_estimators,
             learning_rate=learning_rate,
@@ -50,10 +64,11 @@ class XGBoostDetector:
         return self.clf.predict(np.asarray(X, np.int8)).astype(bool)
 
     def attribute(self, X: np.ndarray, background: np.ndarray) -> np.ndarray:
-        explainer = shap.TreeExplainer(
-            self.clf,
-            data=np.asarray(background, np.float64),
-            feature_perturbation="interventional",
-            model_output="raw",
-        )
-        return np.asarray(explainer.shap_values(np.asarray(X, np.float64), check_additivity=False))
+        X = np.asarray(X, np.float64)
+        bg = np.asarray(background, np.float64)
+        if self.shap_jobs <= 1 or len(X) < 2 * self.shap_jobs:
+            return _interventional_shap(self.clf, bg, X)
+        chunks = np.array_split(X, self.shap_jobs)
+        with ProcessPoolExecutor(self.shap_jobs) as pool:
+            parts = list(pool.map(_interventional_shap, repeat(self.clf), repeat(bg), chunks))
+        return np.vstack(parts)

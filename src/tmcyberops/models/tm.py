@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 import numpy as np
@@ -22,9 +23,15 @@ TM_SCRIPT = JULIA_PROJECT / "tm.jl"
 
 def run_julia(*args: str | Path, threads: str = "auto") -> subprocess.CompletedProcess:
     cmd = [julia_exe(), f"--project={JULIA_PROJECT}", "-t", threads, str(TM_SCRIPT), *map(str, args)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    t = time.time()
+    proc = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL
+    )
     if proc.returncode != 0:
-        raise RuntimeError(f"julia failed ({proc.returncode}):\n{proc.stderr[-4000:]}")
+        raise RuntimeError(
+            f"julia {args[0]} failed with exit code {proc.returncode} after {time.time() - t:.0f} s\n"
+            f"stderr:\n{proc.stderr[-4000:]}\nstdout:\n{proc.stdout[-2000:]}"
+        )
     return proc
 
 

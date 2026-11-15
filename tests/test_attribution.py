@@ -58,6 +58,16 @@ def test_xgboost_efficiency_float64(toy):
     assert np.max(np.abs(model.margin_float64(explain) - model.margin(explain))) < 1e-4
 
 
+def test_xgboost_parallel_attribution_is_identical(toy):
+    X, y, explain, background = toy
+    serial = XGBoostDetector(n_estimators=50, max_leaves=8).fit(X, y)
+    parallel = XGBoostDetector(n_estimators=50, max_leaves=8, shap_jobs=3)
+    parallel.clf = serial.clf
+    np.testing.assert_array_equal(
+        parallel.attribute(explain, background), serial.attribute(explain, background)
+    )
+
+
 @needs_julia
 def test_tm_efficiency(toy, tmp_path):
     tm = TsetlinDetector(clauses_per_class=10, T=8, S=10, L=16, LF=4, epochs=10, seed=1, workdir=tmp_path)
