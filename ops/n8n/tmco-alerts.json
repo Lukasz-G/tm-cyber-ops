@@ -1,0 +1,198 @@
+{
+  "id": "tmcoAlertsFlow01",
+  "name": "tm-cyber-ops: alerts and retrain approvals",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "0b6f1e1a-5b1d-4c1e-9a51-000000000001",
+      "name": "Alert from the platform",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "0b6f1e1a-5b1d-4c1e-9a51-0000000000a1",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tmco-alert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "0b6f1e1a-5b1d-4c1e-9a51-000000000002",
+      "name": "Retrain proposed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0b6f1e1a-5b1d-4c1e-9a51-0000000000c1",
+              "leftValue": "={{ $json.body.kind }}",
+              "rightValue": "retrain proposed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0b6f1e1a-5b1d-4c1e-9a51-000000000003",
+      "name": "Reply with the form link",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        480,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ form: $execution.resumeFormUrl }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "0b6f1e1a-5b1d-4c1e-9a51-000000000004",
+      "name": "Approval form",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        100
+      ],
+      "webhookId": "0b6f1e1a-5b1d-4c1e-9a51-0000000000a4",
+      "parameters": {
+        "resume": "form",
+        "formTitle": "={{ 'Retrain candidate: ' + $('Alert from the platform').item.json.body.model + ' v' + $('Alert from the platform').item.json.body.version }}",
+        "formDescription": "={{ $('Alert from the platform').item.json.body.message }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "approve"
+                  },
+                  {
+                    "option": "reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0b6f1e1a-5b1d-4c1e-9a51-000000000005",
+      "name": "Record the decision in Dagster",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/graphql",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: \"mutation($p: ExecutionParams!) { launchRun(executionParams: $p) { __typename ... on LaunchRunSuccess { run { runId } } ... on PythonError { message } } }\", variables: { p: { selector: { repositoryLocationName: 'tmcyberops.platform.definitions', repositoryName: '__repository__', jobName: 'decision' }, runConfigData: { ops: { record_decision: { config: { model: $('Alert from the platform').item.json.body.model, arm: $('Alert from the platform').item.json.body.arm, version: $('Alert from the platform').item.json.body.version, decision: $json.decision, decided_by: 'n8n form' } } } } } } }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "0b6f1e1a-5b1d-4c1e-9a51-000000000006",
+      "name": "Acknowledge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Alert from the platform": {
+      "main": [
+        [
+          {
+            "node": "Retrain proposed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrain proposed?": {
+      "main": [
+        [
+          {
+            "node": "Reply with the form link",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Acknowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply with the form link": {
+      "main": [
+        [
+          {
+            "node": "Approval form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval form": {
+      "main": [
+        [
+          {
+            "node": "Record the decision in Dagster",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

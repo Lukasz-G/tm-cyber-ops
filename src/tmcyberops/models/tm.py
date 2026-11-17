@@ -73,6 +73,20 @@ class TsetlinDetector:
         self.fit_log = run_julia("fit", xp, yp, self.model_path, cp).stderr.strip()
         return self
 
+    def update(
+        self, X: np.ndarray, y: np.ndarray, epochs: int, workdir: str | Path, rng_offset: int = 0
+    ) -> TsetlinDetector:
+        """A new detector in `workdir`: this model trained `epochs` more passes on (X, y) from its saved
+        automata. This model is left unchanged."""
+        new = TsetlinDetector(**(self.config | {"epochs": epochs}), workdir=workdir)
+        xp = new._matrix(X, "update")
+        yp = new.workdir / "update.labels.arrow"
+        tmx.write_arrow(yp, pa.table({"label": pa.array(np.asarray(y, bool), type=pa.bool_())}))
+        cp = new.workdir / "update.config.json"
+        cp.write_text(json.dumps(new.config | {"rng_offset": int(rng_offset)}), encoding="utf-8")
+        new.fit_log = run_julia("continue", self.model_path, xp, yp, new.model_path, cp).stderr.strip()
+        return new
+
     def scores(self, X: np.ndarray) -> pa.Table:
         xp = self._matrix(X, "score")
         out = self.workdir / "score.arrow"

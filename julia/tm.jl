@@ -2,6 +2,7 @@
 # script trains, scores and attributes, and writes plain files back.
 #
 #   julia --project=julia -t auto julia/tm.jl fit     <train.tmx> <labels.arrow> <model.tmcore> <config.json>
+#   julia --project=julia -t auto julia/tm.jl continue <model.tmcore> <train.tmx> <labels.arrow> <out.tmcore> <config.json>
 #   julia --project=julia -t auto julia/tm.jl score   <model.tmcore> <X.tmx> <scores.arrow>
 #   julia --project=julia -t auto julia/tm.jl shapley <model.tmcore> <X.tmx> <background.tmx> <phi.f64>
 #
@@ -42,6 +43,25 @@ function fit(train_path, labels_path, model_path, config_path)
             length(X), h.n_cols, seed, cfg["epochs"], t)
 end
 
+# continue: load a saved model (with its automata), train it `epochs` more passes on new rows, pass e
+#      shuffled with MersenneTwister(1000 * seed + rng_offset + e), and save it under a new path.
+function continue_cmd(model_path, train_path, labels_path, out_path, config_path)
+    cfg = JSON.parsefile(config_path)
+    m = load(model_path)
+    X, h = read_inputs(train_path)
+    Y = collect(Bool.(read_arrow(labels_path).label))
+    length(Y) == length(X) || error("$(length(Y)) labels for $(length(X)) rows")
+    seed, offset = Int(cfg["seed"]), Int(get(cfg, "rng_offset", 0))
+    t = @elapsed for e in 1:Int(cfg["epochs"])
+        train!(m, X, Y; rng=MersenneTwister(1000seed + offset + e), parallel=:none)
+    end
+    open(io -> save_model(io, m), out_path, "w")
+    predict(load(out_path), X) == predict(m, X) ||
+        error("model reloaded from $out_path predicts differently from the trained model")
+    @printf(stderr, "continue: %d rows x %d cols, seed %d, offset %d, %d epochs in %.1f s\n",
+            length(X), h.n_cols, seed, offset, cfg["epochs"], t)
+end
+
 function score_cmd(model_path, x_path, out_path)
     m = load(model_path)
     X, _ = read_inputs(x_path)
@@ -75,6 +95,8 @@ function main(args)
     cmd, rest = args[1], args[2:end]
     if cmd == "fit" && length(rest) == 4
         fit(rest...)
+    elseif cmd == "continue" && length(rest) == 5
+        continue_cmd(rest...)
     elseif cmd == "score" && length(rest) == 3
         score_cmd(rest...)
     elseif cmd == "shapley" && length(rest) == 4

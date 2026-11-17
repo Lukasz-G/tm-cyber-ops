@@ -16,3 +16,6 @@ data/
 *.tmcore
 *.f64
 work/
+
+# API keys for the language models, never committed
+.env

@@ -1,0 +1,62 @@
+# Platform configuration: the replay, the models and their learning arms, drift, alerts and services.
+# Read by tmcyberops.platform (Dagster definitions, the dashboard and the `tmco-up` launcher).
+
+replay:
+  first_month: "2013-01"
+  last_month: "2018-12"
+  interval_seconds: 30        # replay clock: the next month starts at most this often (one month at a time)
+
+models: [fptm, xgboost, logreg]   # TM and XGBoost compete on every month; logistic regression is the linear arm
+fptm_seed: 1
+xgboost_shap_jobs: 12             # processes for TreeSHAP; results do not depend on it
+
+arms: [frozen, retrain, incremental]
+# frozen:      the 2012 model, never updated
+# retrain:     when its drift or F1 alert fires, a candidate is trained from scratch on the last
+#              `window_months` labelled months (plus the 2012 pool while fewer exist); it replaces the
+#              model once approved in n8n, or by itself after `approval_timeout_minutes`
+# incremental: after every month, the model learns that month's labelled rows on top of what it knows
+retrain:
+  window_months: 12
+  approval_timeout_minutes: 5
+  repropose_months: 6             # after a rejection, propose again at the earliest this many months later
+incremental:
+  fptm_epochs: 5                  # more passes from the saved automata, on the month's rows only
+  xgboost_trees: 100              # more boosting rounds on the month's rows
+  # logistic regression: refit on the month's rows with the L2 penalty centred on the previous weights
+
+sample:
+  holdout_share: 0.10             # of each class of the 2012 pool: cut-off choice and drift reference
+  explain_rows: 500               # explained rows per month and in the reference, at the pool's class mix
+  explain_malware: 50
+  background_rows: 100            # interventional attributions are taken against this background
+  background_malware: 10
+  reference_floor_draws: 1200
+
+drift:
+  top_k: 100
+  quantile: 0.95                  # reference floor: 95th percentile of held-out-vs-reference distances
+
+alerts:
+  reference_drift_months: 2       # alert when the distance from the reference exceeds its floor this many months running
+  f1_drop_points: 15              # alert when F1 at the held-out cut-off falls this far below its held-out value
+
+services:
+  dagster_port: 3000
+  dashboard_port: 8501
+  n8n_webhook: "http://localhost:5678/webhook/tmco-alert"
+  n8n_channel: form               # alerts and approvals on n8n's own form page
+
+llm:
+  # Month summaries by language models through LiteLLM (provider-agnostic); keys go in tm-cyber-ops/.env,
+  # which git ignores. Empty list: template summaries only.
+  summarise_with: [Claude Sonnet]  # names from `models`; e.g. [claude-opus, claude-sonnet, kimi, qwen]
+  max_lines: 4
+  models:
+    # a Claude subscription through the Claude Code CLI (headless), until API keys are set;
+    # CLAUDE_CLI in .env is the path to the claude executable
+    Claude Sonnet: {litellm: claude-cli/sonnet, key_env: CLAUDE_CLI, timeout_s: 120}
+    claude-opus: {litellm: anthropic/claude-opus-5-5, key_env: ANTHROPIC_API_KEY}
+    claude-sonnet: {litellm: anthropic/claude-sonnet-5-5, key_env: ANTHROPIC_API_KEY}
+    kimi: {litellm: moonshot/MODEL-NAME, key_env: MOONSHOT_API_KEY}       # model name comes with the access data
+    qwen: {litellm: dashscope/MODEL-NAME, key_env: DASHSCOPE_API_KEY}     # model name comes with the access data

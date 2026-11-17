@@ -17,7 +17,18 @@ dependencies = [
     "xgboost==3.1.1",
     "shap==0.54.1",
     "pyyaml>=6.0",
+    "dagster>=1.13.30",
+    "dagster-webserver>=1.13.30",
+    "streamlit>=1.67.0",
+    "duckdb>=2.0.0",
+    "plotly>=7.1.0",
+    "langgraph>=1.2.22",
+    "litellm>=1.109.1",
+    "python-dotenv>=1.2.4",
 ]
+
+[project.scripts]
+tmco-up = "tmcyberops.platform.up:main"
 
 [dependency-groups]
 dev = ["pytest>=8.3", "ruff>=0.8"]

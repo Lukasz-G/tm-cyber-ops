@@ -49,6 +49,14 @@ class XGBoostDetector:
         self.clf.fit(np.asarray(X, np.int8), np.asarray(y, np.int8))
         return self
 
+    def update(self, X: np.ndarray, y: np.ndarray, trees: int) -> XGBoostDetector:
+        """A new detector: this ensemble continued with `trees` more boosting rounds on (X, y)."""
+        new = XGBoostDetector(shap_jobs=self.shap_jobs)
+        new.params = self.params | {"n_estimators": trees}
+        new.clf = xgb.XGBClassifier(**new.params)
+        new.clf.fit(np.asarray(X, np.int8), np.asarray(y, np.int8), xgb_model=self.clf.get_booster())
+        return new
+
     def margin(self, X: np.ndarray) -> np.ndarray:
         return self.clf.predict(np.asarray(X, np.int8), output_margin=True).astype(np.float64)
 

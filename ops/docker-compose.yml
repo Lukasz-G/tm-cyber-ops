@@ -1,0 +1,21 @@
+# n8n for the platform's alerts and approvals; started by `tmco-up`.
+# Editor and form pages: http://localhost:5678 (create the local owner account on first start).
+name: tmco
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.47.7
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      GENERIC_TIMEZONE: UTC
+      N8N_SECURE_COOKIE: "false"          # plain http on localhost
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Dagster on the host, for approvals
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+volumes:
+  n8n_data:
