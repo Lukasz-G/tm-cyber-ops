@@ -18,8 +18,7 @@ The methods and their evidence are in tm-cyber-lab; every result here is a scope
 
 ![The dashboard replaying APIGraph month by month](docs/media/dashboard.gif)
 
-The dashboard in playback mode over APIGraph, January 2013 to April 2016 (the replay was still
-running). It shows F1 per detector and version at the max-F1 cut-off chosen on held-out 2012 apps,
+The dashboard in playback mode over the full APIGraph replay, January 2013 to December 2018. It shows F1 per detector and version at the max-F1 cut-off chosen on held-out 2012 apps,
 the gain from updating, attribution drift against its noise floor, and the month report.
 
 ## What one month does
