@@ -60,7 +60,10 @@ def connect(read_only: bool = False, tries: int = 300) -> Iterator[duckdb.DuckDB
             con = duckdb.connect(str(db_path()), read_only=read_only)
             break
         except duckdb.IOException as e:
-            if "lock" not in str(e).lower() or attempt == tries - 1:
+            # another process has the file open; Windows reports it in the system language,
+            # so the stable part of the message is DuckDB's own "Cannot open file"
+            msg = str(e).lower()
+            if not ("lock" in msg or "cannot open file" in msg) or attempt == tries - 1:
                 raise
             time.sleep(0.1)
     try:

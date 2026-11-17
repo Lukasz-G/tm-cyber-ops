@@ -74,6 +74,8 @@ try:
     PLAY = max(0.5, float(st.query_params.get("playback", "0"))) if st.query_params.get("playback") else 0.0
 except ValueError:
     PLAY = 0.0
+if PLAY:  # the "running" indicator would blink on every playback step
+    st.markdown('<style>[data-testid="stStatusWidget"]{visibility:hidden}</style>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------- small helpers
@@ -382,6 +384,7 @@ def slope_chart(f: pd.DataFrame, pal: dict, t: str, sel: str, arm: str) -> go.Fi
     for rows, colr, width in ((down, MUTED[t], 1.5), (up, pal[arm], 2.5)):
         for _, r in rows.iterrows():
             _, text = feature_label(r["feature"])
+            short = text if len(text) <= 26 else text[:25].rstrip() + "…"
             fig.add_trace(
                 go.Scatter(
                     x=x,
@@ -389,20 +392,29 @@ def slope_chart(f: pd.DataFrame, pal: dict, t: str, sel: str, arm: str) -> go.Fi
                     mode="lines+markers+text",
                     line=dict(color=colr, width=width),
                     marker=dict(size=8, color=colr),
-                    text=["", text],
+                    text=["", html.escape(short)],
                     textposition="middle right",
                     textfont=dict(size=11),
+                    cliponaxis=False,
                     hovertemplate=f"{html.escape(text)}: rank %{{y}}<extra></extra>",
                 )
             )
     fig.update_layout(
         height=300,
-        margin=dict(l=4, r=170, t=8, b=4),
+        margin=dict(l=4, r=175, t=8, b=4),
         showlegend=False,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
     )
-    fig.update_yaxes(type="log", autorange="reversed", title_text="rank (1 = most weight)", gridcolor=GRID[t])
+    ticks = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+    fig.update_yaxes(
+        type="log",
+        autorange="reversed",
+        tickvals=ticks,
+        ticktext=[str(v) for v in ticks],
+        title_text="rank (1 = most weight)",
+        gridcolor=GRID[t],
+    )
     fig.update_xaxes(showgrid=False)
     return fig
 
@@ -521,10 +533,6 @@ def playback(done: list[str]) -> list[str]:
     return done[: max(1, min(len(done), 1 + int((time.time() - start) / PLAY)))]
 
 
-def touched() -> None:
-    st.session_state["month_touched"] = True
-
-
 @st.fragment(run_every=PLAY or 15)
 def page() -> None:
     t = theme()
@@ -600,17 +608,19 @@ def page() -> None:
     decision_cards(models, events)
 
     st.write("")
-    left, right = st.columns([3, 1], vertical_alignment="bottom")
-    # the slider follows the newest month until it is moved by hand
-    if st.session_state.get("month") not in done or not st.session_state.get("month_touched"):
-        st.session_state["month"] = done[-1]
-    sel = left.select_slider("Month", options=done, format_func=month_name, key="month", on_change=touched)
+    left, right = st.columns([5, 2], vertical_alignment="bottom")
+    # a new key for every new month: the slider jumps to the newest month when one arrives
+    sel = left.select_slider(
+        "Month", options=done, value=done[-1], format_func=month_name, key=f"month-{len(done)}"
+    )
     right.segmented_control(
         "Cut-off",
         ["held-out", "default"],
         default="held-out",
         key="rule",
-        format_func=lambda r: "chosen on held-out apps" if r == "held-out" else "default (score > 0)",
+        format_func=lambda r: "held-out max-F1" if r == "held-out" else "score > 0",
+        help="Where the score is cut into malware / clean: the cut-off with the best F1 on held-out "
+        "training apps, or the default rule (score above 0).",
     )
 
     overview, report = st.tabs(["Overview", f"Month report · {month_name(sel)}"])
@@ -690,11 +700,10 @@ def page() -> None:
                 st.markdown(f"{icon} {text}")
         with b:
             st.subheader("What the model looks at")
-            x, y = st.columns(2)
-            fm = x.segmented_control(
+            fm = st.segmented_control(
                 "Model", MODELS, default=MODELS[0], key="fmodel", format_func=MODEL_LABELS.get
             )
-            fa = y.segmented_control(
+            fa = st.segmented_control(
                 "Version", ARMS, default="frozen", key="farm", format_func=ARM_BUTTON.get
             )
             f = state.query(
