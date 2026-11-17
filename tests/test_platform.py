@@ -41,6 +41,21 @@ def test_llm_draft_check():
     assert "80" in llm.check("All stayed below 80.", llm.given("2014-03", facts), 4)
 
 
+def test_llm_retries_a_rejected_draft_once(monkeypatch):
+    facts = "XGBoost frozen: F1 66.0 in 2014-03."
+    asked = []
+
+    def fake(spec, system, prompt):
+        asked.append(prompt)
+        return "XGBoost was in the 80s." if len(asked) == 1 else "XGBoost fell to 66.0."
+
+    monkeypatch.setattr(llm, "complete", fake)
+    assert llm.draft({}, "2014-03", facts, 4) == {"text": "XGBoost fell to 66.0.", "rejected": None}
+    assert len(asked) == 2 and "numbers not in the facts: 80" in asked[1]
+    monkeypatch.setattr(llm, "complete", lambda spec, system, prompt: "Around 80.")
+    assert "80" in llm.draft({}, "2014-03", facts, 4)["rejected"]  # the reason's numbers are not facts
+
+
 def test_llm_needs_a_key(monkeypatch):
     monkeypatch.delenv("SOME_TEST_KEY", raising=False)
     cfg = {"llm": {"summarise_with": ["m"], "models": {"m": {"litellm": "x/y", "key_env": "SOME_TEST_KEY"}}}}

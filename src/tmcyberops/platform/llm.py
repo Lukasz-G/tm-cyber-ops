@@ -10,7 +10,8 @@ ops/platform.yaml (`llm.models`) with a transport:
 
 Without any configured model the platform keeps the template summary. Each draft is checked before it
 is stored: at most `max_lines` lines, and every number in it must occur in the facts the model was
-given. A draft that fails the check is stored with the reason, not shown as a summary.
+given. A draft that fails the check is asked for once more with the reason; if that fails too, it is
+stored with the reason, not shown as a summary.
 """
 
 from __future__ import annotations
@@ -32,7 +33,10 @@ SYSTEM = (
     "You summarise one month of an Android malware detection replay for a security analyst. "
     "Write at most {max_lines} short sentences of plain prose, one per line, no headings, no bullet "
     "symbols, no bold. Give the gist, not a list of numbers: at most five numbers in total. "
-    "Use only the facts given; copy numbers exactly as written and add no others. Compare the three "
+    "Use only the facts given; copy numbers exactly as written and add no others. Never round, "
+    "approximate or bucket a number: no decades such as 'the high eighties', no 'about' or 'roughly' "
+    "before a number; to describe a group, quote its exact lowest and highest numbers or use words "
+    "only. Compare the three "
     "versions of each detector (frozen since 2012, retrained on approval, learning every month) and the "
     "detectors (FPTM, XGBoost, logistic regression); say what changed and what matters. When you name "
     "features, say they contributed most to the model's malware score; never call them malware indicators."
@@ -116,18 +120,30 @@ def complete(spec: dict, system: str, prompt: str) -> str:
     return resp.choices[0].message.content or ""
 
 
+def retry_prompt(month: str, facts: str, reason: str) -> str:
+    return (
+        f"{prompt(month, facts)}\n\nYour previous draft was rejected ({reason}). Write it again: copy "
+        "every number exactly from the facts above, and use words where you would round."
+    )
+
+
+def draft(spec: dict, month: str, facts: str, max_lines: int) -> dict:
+    """{"text", "rejected"}; a draft that fails the check is asked for once more, with the reason.
+    The check is always against what the first prompt gave (the reason's numbers are not facts)."""
+    system, known = SYSTEM.format(max_lines=max_lines), given(month, facts)
+    try:
+        text = complete(spec, system, prompt(month, facts)).strip()
+        reason = check(text, known, max_lines)
+        if reason:
+            text = complete(spec, system, retry_prompt(month, facts, reason)).strip()
+    except Exception as e:  # a provider error must not fail the month
+        return {"text": "", "rejected": f"call failed: {type(e).__name__}: {e}"[:300]}
+    return {"text": text, "rejected": check(text, known, max_lines)}
+
+
 def _node(name: str, spec: dict, max_lines: int):
     def run(s: Summaries) -> dict:
-        try:
-            text = complete(spec, SYSTEM.format(max_lines=max_lines), prompt(s["month"], s["facts"]))
-            text = text.strip()
-        except Exception as e:  # a provider error must not fail the month
-            return {"drafts": {name: {"text": "", "rejected": f"call failed: {type(e).__name__}: {e}"[:300]}}}
-        return {
-            "drafts": {
-                name: {"text": text, "rejected": check(text, given(s["month"], s["facts"]), max_lines)}
-            }
-        }
+        return {"drafts": {name: draft(spec, s["month"], s["facts"], max_lines)}}
 
     return run
 
