@@ -71,7 +71,7 @@ CSS = """<style>
 st.set_page_config(page_title="Replay monitor", layout="wide", initial_sidebar_state="collapsed")
 st.markdown(CSS, unsafe_allow_html=True)
 try:
-    PLAY = max(0.5, float(st.query_params.get("playback", "0"))) if st.query_params.get("playback") else 0.0
+    PLAY = max(0.1, float(st.query_params.get("playback", "0"))) if st.query_params.get("playback") else 0.0
 except ValueError:
     PLAY = 0.0
 if PLAY:  # the "running" indicator would blink on every playback step
@@ -133,8 +133,9 @@ def legend(pal: dict) -> None:
     st.markdown(f'<div class="legend">{items}</div>', unsafe_allow_html=True)
 
 
-def show(fig: go.Figure) -> None:
-    st.plotly_chart(fig, config={"displayModeBar": False}, width="stretch", theme="streamlit")
+def show(fig: go.Figure, key: str | None = None) -> None:
+    """A stable key lets a redraw update the chart in place instead of re-creating it."""
+    st.plotly_chart(fig, config={"displayModeBar": False}, width="stretch", theme="streamlit", key=key)
 
 
 def base_layout(fig: go.Figure, height: int, t: str) -> go.Figure:
@@ -150,9 +151,14 @@ def base_layout(fig: go.Figure, height: int, t: str) -> go.Figure:
     return fig
 
 
+def axis_end(last: str) -> int:
+    """The x axis grows with the replay (at least a year, three months beyond the last finished one);
+    in playback it spans the whole replay, so the lines grow from left to right."""
+    return len(MONTHS) - 1 if PLAY else min(len(MONTHS) - 1, max(MONTHS.index(last) + 3, 11))
+
+
 def x_axis(fig: go.Figure, last: str) -> None:
-    """The x axis grows with the replay: at least a year, three months beyond the last finished one."""
-    end = min(len(MONTHS) - 1, max(MONTHS.index(last) + 3, 11))
+    end = axis_end(last)
     short = end < 24
     fig.update_xaxes(
         range=[ts(MONTHS[0]), ts(MONTHS[end])],
@@ -231,9 +237,8 @@ def lines_chart(
         fig.add_vline(x=ts(sel), line=dict(color=MUTED[t], width=1, dash="dot"), row=1, col=c)
     if line_at is not None and line_text:
         n = len(MODELS)
-        end = min(len(MONTHS) - 1, max(MONTHS.index(last) + 3, 11))
         fig.add_annotation(
-            x=ts(MONTHS[end]),
+            x=ts(MONTHS[axis_end(last)]),
             y=line_at,
             xref=f"x{n}",
             yref=f"y{n}",
@@ -528,12 +533,27 @@ def decision_cards(models: pd.DataFrame, events: pd.DataFrame) -> None:
 
 
 def playback(done: list[str]) -> list[str]:
-    """The finished months revealed so far: one at the start, one more every PLAY seconds."""
-    start = st.session_state.setdefault("play_start", time.time())
+    """The finished months revealed so far: one until the first page is drawn, then one more every PLAY
+    seconds (the page redraws at most twice a second, so a short PLAY reveals several per redraw)."""
+    start = st.session_state.get("play_start")
+    if start is None:
+        return done[:1]
     return done[: max(1, min(len(done), 1 + int((time.time() - start) / PLAY)))]
 
 
-@st.fragment(run_every=PLAY or 15)
+def read(sql: str, params: list | None = None) -> pd.DataFrame:
+    """A query; in playback the result is kept for the session. Playback shows finished months only,
+    and a running replay holds the database for seconds at a time, which would stall the playback."""
+    if not PLAY:
+        return state.query(sql, params)
+    cache = st.session_state.setdefault("play_cache", {})
+    key = (sql, tuple(params or ()))
+    if key not in cache:
+        cache[key] = state.query(sql, params)
+    return cache[key].copy()
+
+
+@st.fragment(run_every=max(0.5, PLAY) if PLAY else 15)
 def page() -> None:
     t = theme()
     pal = ARM_COLORS[t]
@@ -553,31 +573,34 @@ def page() -> None:
     if not state.db_path().exists() or not state.models_ready():
         st.info("Waiting for the platform: start it with `uv run tmco-up`; the 2012 models train first.")
         return
-    finished = sorted(state.done_months())
+    finished = sorted(read("select month from months")["month"])
     if not finished:
         st.info("The 2012 models are ready; the first month is running.")
         return
     done = playback(finished) if PLAY else finished
     rule = st.session_state.get("rule") or "held-out"
     # only finished months: a month still running (or stopped half-way) has partial rows
-    metrics = state.query(
+    metrics = read(
         "select * from metrics where rule = ? and month in (select month from months) order by month", [rule]
     )
-    drift = state.query(
+    drift = read(
         "select * from drift where versus = 'reference' and month in (select month from months) order by month"
     )
     drift["ratio"] = drift["distance"] / drift["floor_p95"]
-    models = state.query("select * from models")
-    events = state.query("select * from events order by ts desc")
+    models = read("select * from models")
+    events = read("select * from events order by ts desc")
     latest = done[-1]
-    if PLAY:
+    f1_range = ratio_range = None
+    if PLAY:  # fixed y axes over all finished months, so the lines do not rescale while they grow
+        f1_range = [max(0.0, 10 * (metrics["f1"].min() // 10)), 100.5]
+        ratio_range = [0, 1.05 * drift["ratio"].max()]
         metrics = metrics[metrics["month"] <= latest]
         drift = drift[drift["month"] <= latest]
         events = events[events["month"] <= latest]
         models = models[(models["status"] != "pending") | (models["proposed_month"] <= latest)]
         running = len(done) < len(finished)
     else:
-        last_ts = state.query("select max(ts) as ts from months")["ts"][0]
+        last_ts = read("select max(ts) as ts from months")["ts"][0]
         running = last_ts is not None and (state.now() - last_ts).total_seconds() < 600
 
     c1, c2, c3, c4 = st.columns(4)
@@ -609,10 +632,13 @@ def page() -> None:
 
     st.write("")
     left, right = st.columns([5, 2], vertical_alignment="bottom")
-    # a new key for every new month: the slider jumps to the newest month when one arrives
-    sel = left.select_slider(
-        "Month", options=done, value=done[-1], format_func=month_name, key=f"month-{len(done)}"
-    )
+    if PLAY:  # a progress bar: a slider re-created every step makes the page jump to the top
+        sel = latest
+        left.progress(len(done) / len(MONTHS), text=f"Month: {month_name(latest)}")
+    else:  # a new key for every new month: the slider jumps to the newest month when one arrives
+        sel = left.select_slider(
+            "Month", options=done, value=done[-1], format_func=month_name, key=f"month-{len(done)}"
+        )
     right.segmented_control(
         "Cut-off",
         ["held-out", "default"],
@@ -626,7 +652,7 @@ def page() -> None:
     overview, report = st.tabs(["Overview", f"Month report · {month_name(sel)}"])
     with overview:
         st.subheader("The whole replay at a glance")
-        show(heatmap(metrics, t))
+        show(heatmap(metrics, t), "heatmap")
         st.caption(
             "F1 of every version in every month; brighter is better. Empty cells: months still to come."
         )
@@ -641,11 +667,11 @@ def page() -> None:
                 promoted[["model", "version"]], on=["model", "version"]
             )
             marks = firsts.sort_values("month").groupby(["model", "version"]).head(1)
-        show(lines_chart(metrics, "f1", pal, t, "F1 (%)", ".1f", sel, latest, marks=marks))
+        show(lines_chart(metrics, "f1", pal, t, "F1 (%)", ".1f", sel, latest, f1_range, marks=marks), "f1")
         st.caption("F1 of the malware class each month. Diamonds: a retrained model goes into use.")
 
         st.subheader("Learning gain: what updating buys over the frozen model")
-        show(gain_chart(metrics, pal, t, sel, latest))
+        show(gain_chart(metrics, pal, t, sel, latest), "gain")
         st.caption("F1 points above (or below) the frozen model of the same detector.")
 
         st.subheader("Drift: does each version still see the apps as in its training data?")
@@ -659,10 +685,11 @@ def page() -> None:
                 ".2f",
                 sel,
                 latest,
-                [0, None],
+                ratio_range or [0, None],
                 1.0,
                 "noise floor",
-            )
+            ),
+            "drift",
         )
         st.caption(
             "Above 1: the features that carry the model's score changed more than sampling noise explains "
@@ -671,7 +698,7 @@ def page() -> None:
 
         st.subheader("Events")
         if len(events):
-            show(timeline(events, pal, t, latest))
+            show(timeline(events, pal, t, latest), "events")
             for _, r in events.head(6).iterrows():
                 icon, text = event_sentence(r)
                 st.markdown(f"{icon} **{month_name(r['month'], True)}** · {text}")
@@ -682,7 +709,7 @@ def page() -> None:
         a, b = st.columns(2, gap="large")
         with a:
             st.subheader("In brief")
-            llm = state.query(
+            llm = read(
                 "select author, text from summaries where month = ? and model = 'all' order by author", [sel]
             )
             if len(llm):
@@ -714,7 +741,7 @@ def page() -> None:
             fa = st.segmented_control(
                 "Version", ARMS, default="frozen", key="farm", format_func=ARM_BUTTON.get
             )
-            f = state.query(
+            f = read(
                 "select kind, position, feature, rank, reference_rank from features "
                 "where month = ? and model = ? and arm = ? order by kind, position",
                 [sel, fm or MODELS[0], fa or "frozen"],
@@ -733,3 +760,5 @@ def page() -> None:
 
 
 page()
+if PLAY:  # the playback clock starts once the first page is drawn
+    st.session_state.setdefault("play_start", time.time())
