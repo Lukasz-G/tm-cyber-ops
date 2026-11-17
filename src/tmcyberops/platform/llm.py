@@ -40,6 +40,15 @@ SYSTEM = (
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
 
 
+def prompt(month: str, facts: str) -> str:
+    return f"Month {month}.\n\n{facts}"
+
+
+def given(month: str, facts: str) -> str:
+    """Everything the model was told: the instructions (which name the training year) and the facts."""
+    return SYSTEM + "\n" + prompt(month, facts)
+
+
 class Summaries(TypedDict):
     month: str
     facts: str
@@ -110,11 +119,15 @@ def complete(spec: dict, system: str, prompt: str) -> str:
 def _node(name: str, spec: dict, max_lines: int):
     def run(s: Summaries) -> dict:
         try:
-            text = complete(spec, SYSTEM.format(max_lines=max_lines), f"Month {s['month']}.\n\n{s['facts']}")
+            text = complete(spec, SYSTEM.format(max_lines=max_lines), prompt(s["month"], s["facts"]))
             text = text.strip()
         except Exception as e:  # a provider error must not fail the month
             return {"drafts": {name: {"text": "", "rejected": f"call failed: {type(e).__name__}: {e}"[:300]}}}
-        return {"drafts": {name: {"text": text, "rejected": check(text, s["facts"], max_lines)}}}
+        return {
+            "drafts": {
+                name: {"text": text, "rejected": check(text, given(s["month"], s["facts"]), max_lines)}
+            }
+        }
 
     return run
 

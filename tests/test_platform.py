@@ -36,6 +36,9 @@ def test_llm_draft_check():
     assert "numbers not in the facts" in llm.check("F1 rose to 71.2.", facts, 4)
     assert "lines" in llm.check("a\nb\nc\nd\ne", facts, 4)
     assert llm.check("   ", facts, 4) == "empty"
+    # the training year is named in the instructions, so a draft may use it
+    assert llm.check("Frozen since 2012, XGBoost fell to 66.0.", llm.given("2014-03", facts), 4) is None
+    assert "80" in llm.check("All stayed below 80.", llm.given("2014-03", facts), 4)
 
 
 def test_llm_needs_a_key(monkeypatch):

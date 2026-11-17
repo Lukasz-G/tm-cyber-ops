@@ -687,6 +687,14 @@ def page() -> None:
             )
             if len(llm):
                 for tab, (_, r) in zip(st.tabs(llm["author"].tolist()), llm.iterrows(), strict=True):
+                    rejected = re.match(r"\[not shown: (.*?)\] ", r["text"])
+                    if rejected:  # the draft failed the check: say so and fall back to the template
+                        tab.caption(
+                            f"{r['author']}'s draft was rejected ({rejected.group(1)}); the template:"
+                        )
+                        for line in brief(sel, metrics, drift):
+                            tab.markdown(f"- {line}")
+                        continue
                     for line in [x for x in r["text"].splitlines() if x.strip()]:
                         tab.markdown(line)
                     tab.caption(
