@@ -23,3 +23,10 @@ beth:
   task: host process-event anomaly detection
   module: null
   status: planned
+datadog:
+  task: malicious PyPI package detection from source code
+  features: tokens of the package's Python files (imports, calls, names, string classes), 1,000 binary
+  period: packages published 2022-10 to 2026-06; training before 2023-07, test per quarter
+  module: tmcyberops.datasets.datadog
+  card: datasets/datadog/DATASET_CARD.md
+  status: adapter

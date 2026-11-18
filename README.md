@@ -12,7 +12,11 @@ machine, XGBoost and logistic regression) score each month, are evaluated when t
 arrive, and learn in three ways side by side. A dashboard shows the replay as it runs; retraining waits
 for a human approval in n8n; language models write a short summary of each month.
 
-**Status:** work in progress. The APIGraph replay runs end to end. Four further datasets are planned.
+A second page screens Python packages (Datadog's malicious PyPI packages against random PyPI packages)
+and draws each detector's attributions over the code.
+
+**Status:** work in progress. The APIGraph replay runs end to end; package screening has a first version
+with frozen detectors. Four further datasets are planned.
 The methods and their evidence are in tm-cyber-lab; every result here is a scoped demonstration
 (dataset, period, size).
 
@@ -20,6 +24,48 @@ The methods and their evidence are in tm-cyber-lab; every result here is a scope
 
 The dashboard in playback mode over the full APIGraph replay, January 2013 to December 2018. It shows F1 per detector and version at the max-F1 cut-off chosen on held-out 2012 apps,
 the gain from updating, attribution drift against its noise floor, and the month report.
+
+## Package screening: which lines made the call
+
+![Package screening: attributions drawn over the code of a malicious and a benign package](docs/media/screening.gif)
+
+Malicious packages from [Datadog's dataset](https://github.com/DataDog/malicious-software-packages-dataset)
+and random PyPI packages published in the same quarters, matched in size
+([dataset card](datasets/datadog/DATASET_CARD.md)). The three detectors learn from the tokens of each
+package's Python files (modules imported, names and calls, classes of string literals) on the packages
+published before July 2023, and score every later package. The page draws each detector's attributions
+over the code: a line is red when its features push the package towards malicious, blue when they push
+towards benign. FPTM attributions are exact (closed form); XGBoost uses interventional TreeSHAP; both
+against the same 100 training packages, and each feature's attribution is split equally over its
+occurrences. The source is read in memory from the published archives and never run; URLs, IP addresses,
+e-mail addresses, names and encoded strings are masked before display.
+
+The GIF shows aiopbotocore 0.1.0 (named like aiobotocore), whose install hook downloads a file and starts
+it, then py-chromedriver-autoinstaller 1.0.0, a benign package that also calls PowerShell: that line is
+red, the rest of the package is not, and all three detectors call it benign.
+
+F1 of the malicious class per quarter of publication, at each detector's max-F1 cut-off chosen on 10% of
+the training packages held out (frozen detectors, no retraining yet):
+
+| period | malicious / benign | FPTM | XGBoost | logistic regression |
+|---|---|---|---|---|
+| held-out training packages (2022Q4-2023Q2) | 139 / 273 | 97.8 | 98.2 | 96.7 |
+| 2023Q3 | 8 / 16 | 85.7 | 85.7 | 85.7 |
+| 2023Q4 | 6 / 12 | 0.0 | 0.0 | 0.0 |
+| 2024Q1 | 25 / 51 | 81.0 | 77.3 | 83.7 |
+| 2024Q2 | 72 / 145 | 88.4 | 84.4 | 91.7 |
+| 2024Q3 | 108 / 215 | 77.8 | 69.7 | 85.4 |
+| 2024Q4 | 317 / 605 | 95.6 | 92.1 | 95.7 |
+| 2025Q1 | 66 / 134 | 48.3 | 77.5 | 57.4 |
+| 2025Q2 | 128 / 240 | 75.8 | 68.1 | 87.7 |
+| 2025Q3 | 48 / 100 | 84.3 | 76.4 | 90.9 |
+| 2025Q4 | 72 / 139 | 73.7 | 67.8 | 73.5 |
+| 2026Q1 | 117 / 217 | 40.8 | 45.8 | 47.8 |
+| 2026Q2 | 97 / 179 | 52.2 | 33.1 | 52.6 |
+
+The frozen detectors decay as new campaigns appear; logistic regression has the highest F1 in 8 of 12 quarters. Most
+packages were found by one rule set (GuardDog), so these numbers describe this set, not PyPI malware in
+general (see the card's known biases).
 
 ## What one month does
 
@@ -74,6 +120,16 @@ uv run tmco-up            # Dagster, the dashboard and n8n; continues a stopped 
 uv run tmco-up --reset    # starts a new replay
 ```
 
+Package screening (set `GITHUB_TOKEN` for a fast download of Datadog's samples):
+
+```
+uv run python -m tmcyberops.datasets.datadog download   # malicious PyPI packages, pinned commit
+uv run python -m tmcyberops.datasets.datadog benign     # matched random PyPI packages
+uv run python -m tmcyberops.datasets.datadog prepare    # token features
+uv run python -m tmcyberops.platform.screening build    # train, score per quarter, attributions
+uv run streamlit run src/tmcyberops/platform/screening_page.py --server.port 8502
+```
+
 | service | address |
 |---|---|
 | dashboard | http://localhost:8501 |
@@ -99,8 +155,10 @@ written before the run. Failures stay in the table. Full rows: [demos/INDEX.md](
 
 ## Datasets
 
-Features only. Each dataset is fetched from its publisher by a download script and is never
-redistributed here. Each has a card in `datasets/<name>/DATASET_CARD.md`.
+Features only, with one exception: for the Datadog packages the Python source is read in memory from
+the published encrypted archives, to compute token features and draw the attributions over the code; it
+is never unpacked, installed or run. Each dataset is fetched from its publisher by a download script and
+is never redistributed here. Each has a card in `datasets/<name>/DATASET_CARD.md`.
 
 | dataset | task | status |
 |---|---|---|
@@ -109,10 +167,12 @@ redistributed here. Each has a card in `datasets/<name>/DATASET_CARD.md`.
 | AnoShift (Kyoto-2006+) | network intrusion detection, 2006-2015 | planned |
 | PhreshPhish | phishing web pages | planned |
 | BETH | host process-event anomalies | planned |
+| Datadog malicious software packages (PyPI), with a matched benign set | malicious package detection from source code, 2022-2026 | on the screening page |
 
 ## Roadmap
 
-1. More datasets on the platform: BODMAS, then AnoShift.
+1. More datasets on the platform: BODMAS, then AnoShift; the learning arms (retrain, incremental) for
+   package screening, and npm packages next to PyPI.
 2. Agents with tools: alert triage, and a review of each retraining proposal before the approval form.
 3. A comparison of language models (Claude, Kimi, Qwen) on the same month summaries.
 4. The Tsetlin machine served to agents as an MCP tool.
