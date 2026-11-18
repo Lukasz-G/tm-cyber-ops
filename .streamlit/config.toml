@@ -1,0 +1,14 @@
+# The same dark navy theme as `tmco-up` gives the replay dashboard (src/tmcyberops/platform/up.py),
+# for pages started with `streamlit run` from the repository root.
+[theme]
+base = "dark"
+backgroundColor = "#0b1220"
+secondaryBackgroundColor = "#131d33"
+textColor = "#e6eaf2"
+primaryColor = "#7f9cc7"
+
+[client]
+toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false

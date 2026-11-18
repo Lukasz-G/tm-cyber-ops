@@ -21,22 +21,46 @@ from tmcyberops.datasets import codefeatures, datadog
 from tmcyberops.platform.screening import LABELS, MODELS, out_dir
 
 SHOWN = ("fptm", "xgboost")  # side by side; logistic regression appears in the verdict row
-COLOURS = {"fptm": "#4e9af1", "xgboost": "#f28e2b", "logreg": "#9ccc65"}
 MAX_LINE = 150
 WINDOW = 34
+# the replay dashboard's palette (dashboard.py): dark navy theme, the frozen models' blue, muted text
+FROZEN = {"light": "#2a78d6", "dark": "#3987e5"}
+MUTED = {"light": "#52514e", "dark": "#9aa7bd"}
+GRID = {"light": "rgba(11,11,11,0.07)", "dark": "rgba(154,167,189,0.13)"}
+TOWARDS_MALICIOUS, TOWARDS_BENIGN = (229, 72, 77), (57, 135, 229)
 
-st.set_page_config(page_title="Package screening", layout="wide")
+st.set_page_config(page_title="Package screening", layout="wide", initial_sidebar_state="collapsed")
 st.markdown(
     """<style>
+    .tile {padding:0.7rem 0.9rem; border-radius:10px; background:rgba(127,156,199,0.10)}
+    .tile .t {font-size:0.82rem; opacity:0.75}
+    .tile .v {font-size:1.8rem; font-weight:600; line-height:1.25}
+    .tile .s {font-size:0.82rem; opacity:0.75}
     .code {font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; line-height: 1.45;
-           border: 1px solid rgba(128,128,128,.35); border-radius: 6px; overflow-x: auto; padding: 4px 0;}
-    .code .l {white-space: pre; padding: 0 8px;}
-    .code .n {display: inline-block; width: 3.2em; color: rgba(160,160,160,.75); user-select: none;}
-    .verdict {border-radius: 6px; padding: 6px 10px; border: 1px solid rgba(128,128,128,.35);}
-    .mal {color: #ff6b6b; font-weight: 600;} .ben {color: #6fa8ff; font-weight: 600;}
+           border-radius: 10px; background: rgba(127,156,199,0.06); overflow-x: auto; padding: 6px 0;}
+    .code .l {white-space: pre; padding: 0 10px;}
+    .code .n {display: inline-block; width: 3.2em; opacity: 0.5; user-select: none;}
+    .verdict {padding:0.55rem 0.9rem; border-radius:10px; background:rgba(127,156,199,0.10)}
+    .verdict small {opacity:0.75}
+    .mal {color: #ef6b6f; font-weight: 600;} .ben {color: #5598e7; font-weight: 600;}
     </style>""",
     unsafe_allow_html=True,
 )
+
+
+def theme() -> str:
+    try:
+        return "dark" if st.context.theme.type == "dark" else "light"
+    except Exception:
+        return "light"
+
+
+def tile(col, title: str, value: str, sub: str = "") -> None:
+    col.markdown(
+        f'<div class="tile"><div class="t">{title}</div><div class="v">{value}</div>'
+        f'<div class="s">{sub}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 @st.cache_data
@@ -86,7 +110,8 @@ def code_html(text: str, heat: dict, top: float, lines: range) -> str:
         t = t if len(t) <= MAX_LINE else t[:MAX_LINE] + " …"
         h = heat.get(ln, 0.0)
         a = min(0.85, abs(h) / top) if top > 0 else 0.0
-        bg = f"rgba(230,70,70,{a:.2f})" if h > 0 else f"rgba(70,130,235,{a:.2f})"
+        r, g, b = TOWARDS_MALICIOUS if h > 0 else TOWARDS_BENIGN
+        bg = f"rgba({r},{g},{b},{a:.2f})"
         out.append(
             f'<div class="l" style="background:{bg}"><span class="n">{ln}</span>{html.escape(t)}</div>'
         )
@@ -108,43 +133,49 @@ st.caption(
 )
 n_mal = sum(r["label"] for r in test)
 c = st.columns(4)
-c[0].metric(
-    "Training packages",
-    f"{meta['fit'] + meta['held']:,}",
-    "published before " + meta["train_end"][:7],
-    delta_color="off",
+tile(
+    c[0], "Training packages", f"{meta['fit'] + meta['held']:,}", "published before " + meta["train_end"][:7]
 )
-c[1].metric(
-    "Screened after",
-    f"{len(test):,}",
-    f"{n_mal:,} malicious, {len(test) - n_mal:,} benign",
-    delta_color="off",
-)
-c[2].metric("Quarters", len(quarters), f"{quarters[0]} to {quarters[-1]}", delta_color="off")
-c[3].metric("Features", f"{len(feats):,}", "imports, calls, names, string classes", delta_color="off")
+tile(c[1], "Screened after", f"{len(test):,}", f"{n_mal:,} malicious, {len(test) - n_mal:,} benign")
+tile(c[2], "Quarters", str(len(quarters)), f"{quarters[0]} to {quarters[-1]}")
+tile(c[3], "Features", f"{len(feats):,}", "imports, calls, names, string classes")
+st.write("")
 
 tab_screen, tab_quarters = st.tabs(["Screen a package", "Detection per quarter"])
 
 with tab_quarters:
+    from plotly.subplots import make_subplots
+
+    t = theme()
     m = metrics[(metrics["rule"] == "cutoff") & (metrics["period"].isin(quarters))]
-    fig = go.Figure()
-    for model in MODELS:
+    fig = make_subplots(rows=1, cols=len(MODELS), shared_yaxes=True, horizontal_spacing=0.035,
+                        subplot_titles=[LABELS[x] for x in MODELS])  # fmt: skip
+    for k, model in enumerate(MODELS, 1):
         d = m[m["model"] == model]
-        fig.add_scatter(x=d["period"], y=d["f1"], mode="lines+markers", name=LABELS[model],
-                        line=dict(color=COLOURS[model]),
-                        customdata=np.c_[d["malicious"], d["benign"], d["precision"], d["recall"]],
-                        hovertemplate="%{x}: F1 %{y:.1f} (P %{customdata[2]:.1f}, R %{customdata[3]:.1f}; "
-                        "%{customdata[0]} malicious, %{customdata[1]} benign)<extra>" + LABELS[model] + "</extra>")  # fmt: skip
-    fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10), yaxis=dict(title="F1 (%)", range=[0, 101]),
-                      legend=dict(orientation="h", y=1.08))  # fmt: skip
-    st.plotly_chart(fig, width="stretch", key="f1q")
+        fig.add_trace(
+            go.Scatter(
+                x=d["period"], y=d["f1"], mode="lines+markers", line=dict(color=FROZEN[t], width=2.2),
+                marker=dict(size=6), customdata=np.c_[d["malicious"], d["benign"], d["precision"], d["recall"]],
+                hovertemplate="F1 %{y:.1f} (P %{customdata[2]:.1f}, R %{customdata[3]:.1f}; "
+                "%{customdata[0]} malicious, %{customdata[1]} benign)<extra></extra>",
+            ),
+            row=1, col=k,
+        )  # fmt: skip
+    fig.update_layout(height=300, margin=dict(l=4, r=4, t=28, b=4), hovermode="x unified", showlegend=False,
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")  # fmt: skip
+    fig.update_yaxes(gridcolor=GRID[t], zeroline=False, range=[0, 101])
+    fig.update_yaxes(title_text="F1 (%)", row=1, col=1)
+    fig.update_xaxes(tickangle=-45, tickfont=dict(size=10, color=MUTED[t]))
+    st.plotly_chart(fig, config={"displayModeBar": False}, width="stretch", theme="streamlit", key="f1q")
     st.caption(
-        "F1 of the malicious class per quarter of publication, at each model's max-F1 cut-off chosen on 10% "
-        "of the training packages held out. Quarters differ in size (hover for counts); 2023Q3 to 2024Q1 "
-        "hold few malicious packages."
+        "F1 of the malicious class per quarter of publication, frozen detectors trained before "
+        f"{meta['train_end'][:7]}, at each detector's max-F1 cut-off chosen on 10% of the training packages "
+        "held out. Quarters differ in size (hover for counts); 2023Q3 to 2024Q1 hold few malicious packages."
     )
     st.dataframe(
-        m.pivot_table(index="period", columns="model", values="f1").rename(columns=LABELS).round(1),
+        m.pivot_table(index="period", columns="model", values="f1")[list(MODELS)]
+        .rename(columns=LABELS)
+        .round(1),
         width="stretch",
     )
 
